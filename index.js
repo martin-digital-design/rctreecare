@@ -130,7 +130,7 @@ FORM?.addEventListener('submit', async e => {
         const urls = await handleUpload(files);
 
         // ✅ IMPORTANT: this must be the actual submitted input (name="Photos" in Webflow)
-        PHOTOS_INPUT.value = urls.join('\n');
+        PHOTOS_INPUT.value = 'https://example.com/a.jpg';
 
         // Clear file input so Webflow doesn't try to include it / choke on it
         FILE_INPUT.value = '';
