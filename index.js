@@ -145,7 +145,7 @@ FORM?.addEventListener(
             const urls = await handleUpload(files);
 
             // Put URLs into the Webflow field
-            setPhotosValue(urls.join('\n\n'));
+            setPhotosValue(urls.join('<br /><br />'));
 
             // Clear ONLY the file input (avoid Webflow trying to handle the files)
             FILE_INPUT.value = '';
