@@ -119,14 +119,18 @@ FORM?.addEventListener('submit', async e => {
 
     try {
         const urls = await handleUpload(files);
+        console.log('waiting for handleupload');
+
         PHOTOS_INPUT.value = urls.join('\n');
+
+        console.log('photo urls added', PHOTOS_INPUT.value);
 
         // ✅ Clear ONLY the file input so Webflow doesn't try to process it
         FILE_INPUT.value = '';
 
-        console.log(PHOTOS_INPUT);
-
         // Now submit to Webflow
+        console.log('submitting');
+
         FORM.submit();
     } catch (err) {
         console.error(err);
