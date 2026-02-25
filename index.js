@@ -11,6 +11,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 let previewObjectUrls = [];
 let isSubmitting = false;
+let allowSubmit = false; // ✅ prevents infinite loop when we re-trigger submit
 
 function clearPreview() {
     previewObjectUrls.forEach(u => URL.revokeObjectURL(u));
@@ -68,7 +69,6 @@ function setSubmittingState(on) {
     isSubmitting = on;
     if (SUBMIT_BTN) SUBMIT_BTN.disabled = on;
 
-    // input vs button
     if (SUBMIT_BTN) {
         if ('value' in SUBMIT_BTN)
             SUBMIT_BTN.value = on ? 'Uploading photos...' : 'Submit message';
@@ -79,10 +79,10 @@ function setSubmittingState(on) {
     }
 }
 
-// 1) On change: preview only (no upload)
+// 1) On change: preview only
 FILE_INPUT?.addEventListener('change', () => {
     const files = Array.from(FILE_INPUT.files || []);
-    PHOTOS_INPUT.value = ''; // clear URLs when files change
+    PHOTOS_INPUT.value = '';
 
     if (!files.length) {
         clearPreview();
@@ -98,9 +98,18 @@ FILE_INPUT?.addEventListener('change', () => {
     renderPreview(files);
 });
 
-// 2) On submit: upload, set hidden URLs, then submit to Webflow
+// 2) On submit: upload, set hidden URLs, then re-trigger a REAL submit
 FORM?.addEventListener('submit', async e => {
-    if (isSubmitting) return;
+    // If we've already uploaded and set values, let Webflow handle submission normally
+    if (allowSubmit) {
+        allowSubmit = false;
+        return;
+    }
+
+    if (isSubmitting) {
+        e.preventDefault();
+        return;
+    }
 
     const files = Array.from(FILE_INPUT?.files || []);
 
@@ -119,19 +128,21 @@ FORM?.addEventListener('submit', async e => {
 
     try {
         const urls = await handleUpload(files);
-        console.log('waiting for handleupload');
 
+        // ✅ IMPORTANT: this must be the actual submitted input (name="Photos" in Webflow)
         PHOTOS_INPUT.value = urls.join('\n');
 
-        console.log('photo urls added', PHOTOS_INPUT.value);
-
-        // ✅ Clear ONLY the file input so Webflow doesn't try to process it
+        // Clear file input so Webflow doesn't try to include it / choke on it
         FILE_INPUT.value = '';
 
-        // Now submit to Webflow
-        console.log('submitting');
-
-        FORM.submit();
+        // ✅ This triggers the normal submit flow (including Webflow’s handler)
+        allowSubmit = true;
+        if (typeof FORM.requestSubmit === 'function') {
+            FORM.requestSubmit(SUBMIT_BTN || undefined);
+        } else {
+            // Fallback for older browsers: click the submit button
+            SUBMIT_BTN?.click();
+        }
     } catch (err) {
         console.error(err);
         alert('Photo upload failed. Please try again.');
