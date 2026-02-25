@@ -2,7 +2,6 @@ import { handleUpload } from './functions.js';
 
 const FORM = document.getElementById('email-form');
 const FILE_INPUT = document.getElementById('file-upload');
-const PHOTOS_INPUT = document.getElementById('photo-urls');
 const SUBMIT_BTN = document.getElementById('submit-form-btn');
 const PREVIEW = document.querySelector('.preview');
 
@@ -11,6 +10,15 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 let previewObjectUrls = [];
 let isSubmitting = false;
+let allowSubmit = false;
+
+function getPhotosField() {
+    // ✅ target what Webflow serializes
+    return (
+        FORM?.querySelector('[data-name="Photos"]') ||
+        FORM?.querySelector('[name="Photos"]')
+    );
+}
 
 function clearPreview() {
     previewObjectUrls.forEach(u => URL.revokeObjectURL(u));
@@ -68,7 +76,6 @@ function setSubmittingState(on) {
     isSubmitting = on;
     if (SUBMIT_BTN) SUBMIT_BTN.disabled = on;
 
-    // input vs button
     if (SUBMIT_BTN) {
         if ('value' in SUBMIT_BTN)
             SUBMIT_BTN.value = on ? 'Uploading photos...' : 'Submit message';
@@ -79,10 +86,11 @@ function setSubmittingState(on) {
     }
 }
 
-// 1) On change: preview only (no upload)
+// On change: preview only (no upload)
 FILE_INPUT?.addEventListener('change', () => {
     const files = Array.from(FILE_INPUT.files || []);
-    PHOTOS_INPUT.value = ''; // clear URLs when files change
+    const photosField = getPhotosField();
+    if (photosField) photosField.value = '';
 
     if (!files.length) {
         clearPreview();
@@ -98,14 +106,20 @@ FILE_INPUT?.addEventListener('change', () => {
     renderPreview(files);
 });
 
-// 2) On submit: upload, set hidden URLs, then submit to Webflow
+// On submit: upload, set hidden URLs, then resubmit normally
 FORM?.addEventListener('submit', async e => {
-    if (isSubmitting) return;
+    if (allowSubmit) {
+        allowSubmit = false;
+        return;
+    }
+
+    if (isSubmitting) {
+        e.preventDefault();
+        return;
+    }
 
     const files = Array.from(FILE_INPUT?.files || []);
-
-    // No files? Let Webflow submit as normal
-    if (!files.length) return;
+    if (!files.length) return; // no files -> normal Webflow submit
 
     e.preventDefault();
 
@@ -119,13 +133,33 @@ FORM?.addEventListener('submit', async e => {
 
     try {
         const urls = await handleUpload(files);
-        PHOTOS_INPUT.value = 'hi';
 
-        // ✅ Clear ONLY the file input so Webflow doesn't try to process it
+        const photosField = getPhotosField();
+        if (!photosField) {
+            console.error('Photos field not found inside the submitted form.');
+            alert(
+                'Photos field not found. Check the field is inside the form and named "Photos".',
+            );
+            return;
+        }
+
+        photosField.value = urls.join('\n');
+
+        // ✅ force Webflow to notice the update
+        photosField.dispatchEvent(new Event('input', { bubbles: true }));
+        photosField.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // optional: prove it in console right before submit
+        console.log('Submitting Photos value:', photosField.value);
+
         FILE_INPUT.value = '';
 
-        // Now submit to Webflow
-        FORM.submit();
+        allowSubmit = true;
+        if (typeof FORM.requestSubmit === 'function') {
+            FORM.requestSubmit(SUBMIT_BTN || undefined);
+        } else {
+            SUBMIT_BTN?.click();
+        }
     } catch (err) {
         console.error(err);
         alert('Photo upload failed. Please try again.');
