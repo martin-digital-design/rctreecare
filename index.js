@@ -122,6 +122,8 @@ FORM?.addEventListener('submit', async e => {
         const urls = await handleUpload(files);
         PHOTOS_INPUT.value = urls.join('\n');
 
+        console.log(PHOTOS_INPUT.value);
+
         // Now submit to Webflow
         FORM.submit();
     } catch (err) {
