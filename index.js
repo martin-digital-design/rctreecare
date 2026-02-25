@@ -130,6 +130,8 @@ FORM?.addEventListener('submit', async e => {
             FILE_INPUT.removeAttribute('name');
         }
 
+        console.log(PHOTOS_INPUT.value);
+        console.log(FILE_INPUT.value);
         // submit to Webflow (no file field present)
         FORM.submit();
     } catch (err) {
