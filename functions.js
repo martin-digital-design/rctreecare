@@ -48,8 +48,6 @@ async function handleUpload(files) {
 
         return urls;
     } catch (e) {
-        alert('Upload failed. Please try again.');
-
         throw e;
     }
 }
