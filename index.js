@@ -124,6 +124,8 @@ FORM?.addEventListener('submit', async e => {
         // ✅ Clear ONLY the file input so Webflow doesn't try to process it
         FILE_INPUT.value = '';
 
+        console.log(PHOTOS_INPUT);
+
         // Now submit to Webflow
         FORM.submit();
     } catch (err) {
