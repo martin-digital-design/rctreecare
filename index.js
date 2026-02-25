@@ -104,32 +104,46 @@ FORM?.addEventListener('submit', async e => {
 
     const files = Array.from(FILE_INPUT?.files || []);
 
-    // No files? Let Webflow submit as normal
+    // No files? let Webflow submit normally
     if (!files.length) return;
 
     e.preventDefault();
 
-    if (!validateFiles(files)) {
-        FILE_INPUT.value = '';
-        clearPreview();
-        return;
-    }
+    if (!validateFiles(files)) return;
 
     setSubmittingState(true);
+
+    const wrap = document.getElementById('file-upload-wrap');
+    const placeholder = document.createComment('file input removed');
 
     try {
         const urls = await handleUpload(files);
         PHOTOS_INPUT.value = urls.join('\n');
 
-        // ✅ Clear ONLY the file input so Webflow doesn't try to process it
-        FILE_INPUT.value = '';
+        // ---- critical: remove file input from the form before submitting ----
+        if (wrap && wrap.parentNode) {
+            wrap.parentNode.insertBefore(placeholder, wrap);
+            wrap.remove();
+        } else {
+            // fallback: disable + remove name so Webflow can't serialize it
+            FILE_INPUT.disabled = true;
+            FILE_INPUT.removeAttribute('name');
+        }
 
-        // Now submit to Webflow
+        // submit to Webflow (no file field present)
         FORM.submit();
     } catch (err) {
         console.error(err);
         alert('Photo upload failed. Please try again.');
     } finally {
         setSubmittingState(false);
+
+        // put the file input back so user can try again without refresh
+        if (placeholder.parentNode && wrap) {
+            placeholder.parentNode.insertBefore(wrap, placeholder);
+            placeholder.remove();
+        } else if (FILE_INPUT) {
+            FILE_INPUT.disabled = false;
+        }
     }
 });
