@@ -100,14 +100,13 @@ FILE_INPUT?.addEventListener('change', () => {
 
 // 2) On submit: upload, set hidden URLs, then submit to Webflow
 FORM?.addEventListener('submit', async e => {
-    if (isSubmitting) return; // safety
+    if (isSubmitting) return;
 
     const files = Array.from(FILE_INPUT?.files || []);
 
-    // If no files, let Webflow submit normally
+    // No files? Let Webflow submit as normal
     if (!files.length) return;
 
-    // If files exist, we take over submission
     e.preventDefault();
 
     if (!validateFiles(files)) {
@@ -122,7 +121,8 @@ FORM?.addEventListener('submit', async e => {
         const urls = await handleUpload(files);
         PHOTOS_INPUT.value = urls.join('\n');
 
-        console.log(PHOTOS_INPUT.value);
+        // ✅ Clear ONLY the file input so Webflow doesn't try to process it
+        FILE_INPUT.value = '';
 
         // Now submit to Webflow
         FORM.submit();
